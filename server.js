@@ -21,20 +21,13 @@ app.get('/api/waifus', (req, res) => {
 
 app.get('/api/waifus/:name', (req, res) => {
   const waifu = waifus.find(arr => arr.name === req.params.name)
-  if (!waifu) res.status(404).send(`${req.params.name} is not in the DB`)
+  if (!waifu) return res.status(404).send(`${req.params.name} is not in the DB`)
   res.send(waifu)
 })
 
 app.post('/api/waifus', (req, res) => {
-  const schema = {
-    name: Joi.string().min(3).required()
-  }
-  const result = Joi.validate(req.body, schema)
-
-  if (result.error) {
-    res.status(400).send(result.error.details[0].message)
-    return
-  }
+  const { error } = validateWaifu(req.body)
+  if (error) return res.status(400).send(error.details[0].message)
 
   const waifu = {
     id: waifus.length + 1,
@@ -43,6 +36,36 @@ app.post('/api/waifus', (req, res) => {
   waifus.push(waifu)
   res.send(waifu)
 })
+
+app.put('/api/waifus/:id', (req, res) => {
+  const waifu = waifus.find(arr => arr.id === parseInt(req.params.id))
+  if (!waifu) res.status(404).send(`${req.params.id} ID is not in the DB`)
+
+  const { error } = validateWaifu(req.body)
+  if (error) return res.status(400).send(error.details[0].message)
+
+  waifu.name = req.body.name
+  res.send(waifu)
+})
+
+app.delete('/api/waifus/:id', (req, res) => {
+  const waifu = waifus.find(arr => arr.id === parseInt(req.params.id))
+  if (!waifu) {
+    return res.status(404).send(`${req.params.id} ID is not in the DB`)
+  }
+
+  const index = waifus.indexOf(waifu)
+  waifus.splice(index, 1)
+
+  res.send(waifu)
+})
+
+function validateWaifu (waifu) {
+  const schema = {
+    name: Joi.string().min(3).required()
+  }
+  return Joi.validate(waifu, schema)
+}
 
 const port = process.env.PORT || 9000
 app.listen(port, () => console.log(`listening on port ${port}...`))
